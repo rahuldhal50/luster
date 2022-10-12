@@ -1,0 +1,5 @@
+
+https://www.nics.tennessee.edu/computing-resources/file-systems/lustre-striping-guide
+https://lustre.ornl.gov/lustre101-courses/C1/AdminEssentials.htm
+
+

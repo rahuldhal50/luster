@@ -1,0 +1,78 @@
+
+What is luster
+Lustre is a type of parallel distributed 
+file system, generally used for large-scale cluster computing
+
+LNet
+
+Lustre Networking, or LNET, which provides the communication
+infrastructure required by the Lustre filesystem
+
+LNET supports many commonly used network types, 
+which include InfiniBand and IP
+networks.
+
+/etc/modprobe.d/lustre.conf
+
+stored in /etc/modprobe.conf, but this has been deprecated since
+before RHEL5 and SLES10
+
+lnetctl lnet configure
+
+lnetctl global show
+modprobe lustre
+lnetctl net del --net tcp2
+
+components
+MDS:MDT 
+ Storage types that provide much lower seek times, such as SSD or NVMe is strongly
+preferred for the MDT
+
+
+-------
+To configure a simple Lustre file system, complete these steps:
+Configuring a Lustre File System
+73
+1. Create a combined MGS/MDT file system on a block device. On the MDS node, run:
+mkfs.lustre --fsname=
+fsname --mgs --mdt --index=0
+/dev/block_device
+The default file system name ( fsname) is lustre.
+Note
+If you plan to create multiple file systems, the MGS should be created separately on its own
+dedicated block device, by running:
+mkfs.lustre --fsname=
+fsname --mgs
+/dev/block_device
+See Section 13.8, “ Running Multiple Lustre File Systems”for more details.
+2. Optional for Lustre software release 2.4 and later. Add in additional MDTs.
+mkfs.lustre --fsname=
+fsname --mgsnode=
+nid --mdt --index=1
+/dev/block_device
+Note
+Up to 4095 additional MDTs can be added.
+3. Mount the combined MGS/MDT file system on the block device. On the MDS node, run:
+mount -t lustre
+/dev/block_device
+/mount_point
+Note
+If you have created an MGS and an MDT on separate block devices, mount them both.
+4. Create the OST. On the OSS node, run:
+mkfs.lustre --fsname=
+fsname --mgsnode=
+MGS_NID --ost --index=
+OST_index
+/dev/block_device
+When you create an OST, you are formatting a ldiskfs or ZFS file system on a block storage device
+like you would with any local file system.
+Configuring a Lustre File System
+74
+You can have as many OSTs per OSS as the hardware or drivers allow. For more information about
+storage and memory requirements for a Lustre file system, see Chapter 5, Determining Hardware
+Configuration Requirements and Formatting Options
+--------------
+
+
+https://downloads.whamcloud.com/public/lustre/
+

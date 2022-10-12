@@ -1,0 +1,227 @@
+download luster files --luster.org
+disable kernel update from yum
+echo 'disable=kern*.lustre'>>/etc/yum.conf
+
+=====server/rpms---for oss and mds
+
+kernel-2.6.XXXXXXel7_lustre.x86_64.rpm
+kernel-firmware-2.6.xx
+lustre-2.7.0-2.6.32_XX.el7_lustre.x86_64.rpm
+lustre-modules-2.7XXXX_lustre.rpm
+lustre-osd-ldiskfs-2.7.XXXX_lustre.rpm
+lustre-osd-ldisk-mount-2.7
+
+public/e2fsprogs/
+e2fsprogs-1.42.XXX.x86_64.rpm
+e2fsprogs-libs.xxxxx.rpm
+
+if facing any issue while formating disk then we need to download
+libcom-err-1.xx
+libss-1.xxx
+
+Configuration MDS:
+
+vim /etc/modprobe.d/lnet.conf
+option lnet networks="tcp0(eth0)"
+ or o2ib
+
+chkconfig lnet --add
+chkconfig lnet on
+cnkconfig lustre --add
+chkconfig lustre on
+fdisk -l (check which device you want for lustre)
+mkfs.lustre --fsname=lustre --mgs --mdt /dev/sdX
+mkdir /mds
+
+vim /etc/ldev.conf
+lustre01 DATA-MDT0000 /dev/sda
+lustre01 DATA-OST0000 /dev/sda
+lustre02 DATA-OST0001 /dev/sda
+
+mount -t lustre /dev/sdx /mds
+modprobe lnet
+lctl network up
+lctl list_nids
+
+
+Configuring OSS:
+vim /etc/modprobe.d/lnet.conf
+option lnet networks="tcp0(eth0)"
+modprobe lnet
+lctl network up
+lctllist_nids
+fdisk -l (check disk)
+mkfs.lustre --ost --fsname=lustre -mgsnode=192.168.10.14@tcp /dev/sdX
+mkdir ost0
+mount -t lustre /dev/sdb /ost0
+
+Configure client:
+lustre-client-2.7.xxx.el7.x86_84.rpm
+lustre-client-modules-2.7.x.x.x.x86_64.rpm
+kernel-2.6.xx.xx.x86_64.rpm
+
+modprobe lustre
+mount -t lustre <mds_server_ip>@tcp:/lustre clinet
+
+
+
+
+
+_________
+we can make entry in MDS and OSS fstab entry
+/dev/sdx /mds  lustre defaults,_netdev 0 0
+IN OSS
+/dev/sdx /ost0  lustre defaults,_netdev 0 0
+
+for client no need to give in fstab entry
+
+============================================
+https://www.linuxjournal.com/content/lustre-distributed-filesystem
+
+
+
+======
+======
+======
+======
+======
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+======
+======
+======
+https://wiki.hpdd.intel.com/display/PUB/Create+and+Mount+a+Lustre+Filesystem
+
+
+
+Set up the MGS, MDT, and MDS
+The node client-11 is going to be the MGS, MDT, and MDS.
+
+connect to client-11
+
+rlogin -l root client-11
+check to see which networks are suitable
+
+cat /etc/modprobe.conf
+This should show
+
+options lnet networks="o2ib0(ib0)"
+configured for lnet.
+
+Use
+
+fdisk /dev/sda
+to create a primary partition from the unallocated disk space. This partition is
+
+/dev/sda4
+.
+
+Create the MGS/MDT file system:
+
+mkfs.lustre --fsname=lustrewt --mgs --mdt /dev/sda4
+You should see:
+
+Permanent disk data:
+Target:     lustrewt-MDTffff
+Index:      unassigned
+Lustre FS:  lustrewt
+Mount type: ldiskfs
+Flags:      0x75
+(MDT MGS needs_index first_time update )
+Persistent mount opts: iopen_nopriv,user_xattr,errors=remount-ro
+Parameters: mdt.group_upcall=/usr/sbin/l_getgroups
+ 
+checking for existing Lustre data: not found
+device size = 205220MB
+2 6 18
+formatting backing filesystem ldiskfs on /dev/sda4
+target name  lustrewt-MDTffff
+4k blocks     52536566
+options        -J size=400 -i 4096 -I 512 -q -O dir_index,uninit_groups -F
+mkfs_cmd = mke2fs -j -b 4096 -L lustrewt-MDTffff  -J size=400 -i 4096 -I 512 -q -O dir_index,uninit_groups -F /dev/sda4 52536566
+Writing CONFIGS/mountdata
+Create a mount point:
+
+mkdir /mnt/mdt
+Mount the MGS/MDT file system
+
+mount -t lustre /dev/sda4 /mnt/mdt
+Install lnet module: modprobe lnet
+Start-up lnet: lctl network up
+Check the NID: lctl list_nids this should return 192.168.4.11@o2ib
+Make lnet install during boot.
+Set up the OST and OSS
+The node client-12 is going to be the OST and OSS.
+
+connect to client-12
+
+rlogin -l root client-12
+check to see which networks are suitable
+
+cat /etc/modprobe.conf
+This should show options lnet networks="o2ib0(ib0)" configured for lnet.
+
+Use fdisk /dev/sda to create a primary partition from the unallocated disk space. This partition is /dev/sda4.
+Create the OST:
+
+mkfs.lustre --ost --fsname=lustrewt --mgsnode=192.168.4.11@o2ib0 /dev/sda4
+you should see:
+
+Permanent disk data:
+Target:     lustrewt-OSTffff
+Index:      unassigned
+Lustre FS:  lustrewt
+Mount type: ldiskfs
+Flags:      0x72
+(OST needs_index first_time update )
+Persistent mount opts: errors=remount-ro,extents,mballoc
+Parameters: mgsnode=192.168.4.11@o2ib
+ 
+checking for existing Lustre data: not found
+device size = 205220MB
+2 6 18
+formatting backing filesystem ldiskfs on /dev/sda4
+target name  lustrewt-OSTffff
+4k blocks     52536566
+options        -J size=400 -i 16384 -I 256 -q -O dir_index,extents,uninit_groups -F
+mkfs_cmd = mke2fs -j -b 4096 -L lustrewt-OSTffff  -J size=400 -i 16384 -I 256 -q -O dir_index,extents,uninit_groups -F /dev/sda4 52536566
+Writing CONFIGS/mountdata
+Create a mount point: mkdir /ostoss_mount
+Mount the OST: mount -t lustre /dev/sda4 /ostoss_mount
+Setup the client.
+connect to client-10
+
+rlogin -l root client-10
+Load the Lustre client module
+
+modprobe lustre
+NOTE: The client is available from build.whamcloud.com
+Mount the lustre filesystem
+
+mount -t lustre 192.168.4.11@o2ib:/lustrewt /mnt
+Making Luster servers persist through a reboot.
+Add mount command for MGS, MDS, and MDT to /etc/fstabon client-11
+
+/dev/sda4               /mgsmdt_mount           lustre  defaults,_netdev        0 0
+Add mount command for OST and OSS to /etc/fstabon client-12
+
+/dev/sda4               /ostoss_mount           lustre  defaults,_netdev        0 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

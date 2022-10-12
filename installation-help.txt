@@ -1,0 +1,90 @@
+Installation RPM/Packages...
+https://downloads.whamcloud.com/public/lustre/
+
+https://downloads.whamcloud.com/public/e2fsprogs/
+
+Select which version you want to go...
+install
+1.e2fsprogs installation
+public/e2fsprogs/
+e2fsprogs-1.42.XXX.x86_64.rpm
+e2fsprogs-libs.xxxxx.rpm
+
+2.Luster kernel and server Packages installation in all OSS/MDS 
+kernel-debuginfo-common-x86_64-3.10.0-957.el7_lustre.x86_64.rpm
+kernel-2.6.XXXXXXel7_lustre.x86_64.rpm
+kernel-firmware-2.6.xx
+
+Create Local repo of centos and copy all luster RPMs form 
+https://downloads.whamcloud.com/public/lustre/
+
+-------&&&&&&&------------server rpms------- yum install ---
+lustre-2.7.0-2.6.32_XX.el7_lustre.x86_64.rpm
+lustre-modules-2.7XXXX_lustre.rpm
+lustre-osd-ldiskfs-2.7.XXXX_lustre.rpm
+lustre-osd-ldisk-mount-2.7
+--------&&&&&&&-------------server rpms-----
+
+3.Luster kernel and client Packages installation in all clients.
+client:
+lustre-client-2.7.xxx.el7.x86_84.rpm
+lustre-client-modules-2.7.x.x.x.x86_64.rpm
+kernel-2.6.XXXXXXel7_lustre.x86_64.rpm
+
+
+++++++++++++
+Above all step can be read in 
+Page 49::  Preparing to Install the Lustre Software
+Page 51::  Lustre Software Installation Procedure
+
+
+++++++++++++++
+
+
+4.Lnet Configuration:
+vim /etc/modprobe.d/lnet.conf
+option lnet networks=o2ib0
+options lnet networks=tcp0(eth0),o2ib(ib0)
+
+
+
+5.Configuring a Lustre File System
+Read Manual Page 72 :::
+here they have given example of one MDS
+I have to check for two MDS
+
+if 100 TB useable space needed
+
+
+But in case of MDT will be 2% = 2TB
+mdt1 - 1 TB in mds1
+mdt2 - 1 TB in mds2
+
+10*10 =100
+5 will be in OSS1
+5 will be in OSS2
+
+
+
+
+
+
+
+
+
+(((((((
+page 23 in manual
+)))))))
+
+
+
+
+
+
+
+
+
+configuration:
+
+
+Page 75 ---- 10.1.1.  Simple Lustre Configuration Example

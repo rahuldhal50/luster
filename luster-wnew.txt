@@ -1,0 +1,245 @@
+set hostname for all nodes accordinly...
+set static IPs for all nodes...
+
+ssh-keygen -t rsa
+cat id_rsa.pub > authorized_keys
+chmod 600 authorized_keys
+cat config
+Host *
+StrictHostKeyChecking no
+copy .ssh to all nodes
+
+
+make this for all nodes...
+
+systemctl stop firewalld
+systemctl stop NetworkManager
+systemctl disable firewalld
+systemctl disable NetworkManager
+
+vim /etc/selinux/config
+SELINUX=disabled
+
+reboot
+
+cat /etc/hosts
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6
+192.168.1.10 m1.internal.cluster m1
+192.168.1.21 n1.internal.cluster n1
+192.168.1.22 oss1.internal.cluster oss1
+192.168.1.23 oss2.internal.cluster oss2
+192.168.1.24 mds1.internal.cluster mds1
+
+create local repo for centos7 in master node.
+yum install httpd
+copy iso to /var/www/html/centos7.6/
+
+cat /etc/yum.repos.d/local.repo
+       [localrepo]
+       name=centos7.6
+       baseurl=http://192.168.1.10/centos7.6
+       enabled=1
+       gpgcheck=0
+
+
+
+cd /var/www/html
+
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/patchless-ldiskfs-server/
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/e2fsprogs/1.45.2.wc1/el7/
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/client/
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/server/
+
+
+cat /etc/yum.repos.d/lustre.repo
+
+[ldisk-lustre-server]
+name=ldiskfs-lustre-server
+baseurl=http://192.168.1.10/downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/patchless-ldiskfs-server
+enabled=1
+gpgcheck=0
+
+[lustre-server]
+name=lustre-server
+baseurl=http://192.168.1.10/downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/server
+enabled=1
+gpgcheck=0
+
+[lustre-client]
+name=lustre-client
+baseurl=http://192.168.1.10/downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/client
+enabled=1
+gpgcheck=0
+
+[lustre-e2fsporgs]
+name=lustre-e2fsprogs
+baseurl=http://192.168.1.10/downloads.whamcloud.com/public/e2fsprogs/1.45.2.wc1/el7
+enabled=1
+gpgcheck=0
+
+in all nodes server/clients
+
+yum --nogpgcheck --disablerepo=* --enablerepo=lustre-e2fsporgs install e2fsprogs 
+
+yum --nogpgcheck --enablerepo=lustre-server install  kmod-lustre-osd-ldiskfs lustre-osd-ldiskfs-mount lustre lustre-resource-agents
+
+====================
+
+cat /etc/modprobe.d/lustre.conf (Any entry)
+
+
+options lnet networks=o2ib0
+options lnet networks=tcp0(enp0s3)
+options lnet networks=tcp0(bond0)
+
+==========================================
+
+
+
+=====Lustre Server Packages ============
+e2fsprogs-xx.xx.rpm
+lustre-2.12.2-1.el7.x86_64.rpm
+kmod-lustre-2.12.2-1.el7.x86_64.rpm
+kmod-lustre-osd-ldiskfs-2.12.2-1.el7.x86_64.rpm
+lustre-osd-ldiskfs-mount-2.12.2-1.el7.x86_64.rpm
+lustre-resource-agents-2.12.2-1.el7.x86_64.rpm
+
+
+---kernel-3.10.0-957.10.1.el7_lustre.x86_64.rpm
+
+
+yum install e2fsprogs kmod-lustre kmod-lustre-osd-ldiskfs lustre-osd-ldiskfs-mount lustre lustre-resource-agents 
+
+=====Lustre Clients Packages ======
+kmod-lustre-client
+lustre-client
+e2fsprogs
+--lustre-client-dkms
+
+The version of the kernel running on a Lustre client must be the same as the version of the 
+kmod-lustre-client-ver package being installed, unless the DKMS package is installed
+
+
+
+yum install e2fsprogs kmod-lustre-client lustre-client 
+
+
+==========================
+ON OSS and MDS servers ((((((firsttime it may create issue with mounting))))))
+
+
+systemctl start lustre
+systemctl enable lustre
+
+
+ON ALL Node
+systemctl start lnet
+systemctl enable lnet
+
+======= LNet Troubleshooting =======
+
+lnetctl global show
+lnetctl lnet configure
+
+lnetctl net add --net tcp0 --if enp0s3
+
+
+modprobe lustre
+lnetctl net del --net tcp0
+
+http://wiki.lustre.org/LNET_Selftest
+
+=========
+
+(((((((confiuring Lustre...)))))))
+
+on mds node
+
+Create a combined MGS and MDT File System on a block device 
+mkfs.lustre --fsname=fsname --mgs --mdt --index=0 /dev/block_device 
+
+e.g. mkfs.lustre --fsname=lustre --mgs --mdt --index=0 /dev/sdb
+
+
+Mount the combined MGS and MDT file system on the block device 
+mount -t lustre /dev/block_device /mnt_point 
+e.g. mount -t lustre /dev/sdb /mdt0
+
+
+Configure Lustre OSS servers 
+
+Create an OST File System on a block device 
+mkfs.lustre --fsname=fsname --mgsnode=<node_ip@tcp0> --ost -index=OST_index /dev/block_device 
+e.g mkfs.lustre --fsname=lustre --mgsnode=mds1@tcp0 --ost --index=0 /dev/sdb 
+
+Mount the OST file system on the block device 
+mount -t lustre /dev/block_device /mnt_point 
+e.g. mount -t lustre /dev/sdb /ost0
+
+Lustre File system on the client node
+
+Mount the Lustre File system on the client node 
+mount -t lustre MGS_node:/fsname /mount_point 
+e.g. mount -t lustre mds1:/lustre /lustre
+
+
+Verifying the Lustre Cluster 
+
+
+o Log in to Lustre client 
+o List all MDT devices in the Lustre cluster – “lfs mdts” 
+o List all OST devices in the Lustre cluster – “lfs osts” 
+o Show space usage per MDT and OSTs -"lfs df -h"  
+o Show all files residing on Lustre file system on /lustre - "ls -lsah /lustre 
+o Run dd command "dd if=/dev/zero of=/lustre/zero1.dat bs=400M count=2" to write some 800MB of data on Lustre FS 
+o Show the newly created  file Lustre file system on /mnt - "ls -lsah /mnt” 
+o Show the usage of Lustre file system -"lfs df -h" 
+o This will show percentage and amount of data written on each OST in Lustre file system 
+
+
+
+
+
+
+Stoping Lustre:
+on each client...
+umount -a -t lustre
+lfs df -h
+
+ Unmount all the OSTs
+On each OSS node, use the umount command:
+umount -a -t lustre
+
+On the MGS and MDS node(s), use the umount command:
+umount -a -t lustre
+
+Shutdown storage box
+Shutdown switch
+
+Starting
+
+
+
+
+lfs setstripe –S 512K /lustre/new_file
+lfs setstripe –c -1 /lustre/test/full_stripe
+-1 (one) stripe over all OSTs
+lfs setstripe –stripe-count 1 –index 0 /lustre/file1
+Create a file on specific OST
+lfs getstripe /lustre/full_stripe
+
+
+
+Removing an OST from the File System
+
+lctl set_param osp.testfs-OST0000-osc-MDT*.max_create_count=0
+
+lfs find --ost ost_uuid -print0 /mount/point | tee /tmp/files_to_restore | xargs -0 -n 1 unlink
+lctl set_param osc.lustre-OST0002.active=0
+lctl conf_param OST0002.osc.active=0
+
+ldiskfs - filesystem 
+or can be used zfs
+
+

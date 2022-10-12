@@ -1,0 +1,35 @@
+cd /var/www/html
+
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/patchless-ldiskfs-server/
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/e2fsprogs/1.45.2.wc1/el7/
+wget --mirror --convert-links --adjust-extension --page-requisites --no-parent https://downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/client/
+
+cat /etc/yum.repos.d/lustre.repo
+
+
+[lustre-server]
+name=lustre-server
+baseurl=http://172.16.19.254/downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/patchless-ldiskfs-server
+enabled=1
+gpgcheck=0
+
+[lustre-client]
+name=lustre-client
+baseurl=http://172.16.19.254/downloads.whamcloud.com/public/lustre/lustre-2.12.2/el7.6.1810/client
+enabled=1
+gpgcheck=0
+
+[lustre-e2fsporgs]
+name=lustre-e2fsprogs
+baseurl=http://172.16.19.254/downloads.whamcloud.com/public/e2fsprogs/1.45.2.wc1/el7
+enabled=1
+gpgcheck=0
+
+yum --nogpgcheck --disablerepo=* --enablerepo=lustre-e2fsporgs install e2fsprogs 
+
+yum --nogpgcheck --enablerepo=lustre-server install  kmod-lustre-osd-ldiskfs lustre-osd-ldiskfs-mount lustre lustre-resource-agents
+
+cat /etc/modprobe.d/lustre.conf
+
+
+options lnet networks=o2ib0

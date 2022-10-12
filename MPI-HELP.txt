@@ -1,0 +1,2 @@
+https://www.slothparadise.com/how-to-setup-mpi-on-centos-7-2-connected-virtual-machines-part-2/
+https://www.slothparadise.com/how-to-run-hpl-linpack-across-nodes/
